@@ -9,7 +9,7 @@
 const INTERVAL = 30; // time between readings in seconds
 const SPICLK = 937.5;
 
-@include "DHT22"
+@include "DHT22.nut"
 
 function read_sensor() {
     

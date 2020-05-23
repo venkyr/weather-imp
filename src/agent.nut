@@ -4,6 +4,7 @@
 temp <- 0;
 rh <- 0;
 last_checkin <- "Never";
+utc_offset <- (-7*3600);   // in seconds
 
 //////////////////////////
 // Function Definitions //
@@ -43,7 +44,7 @@ function respondImpValues(request,response){
 device.on("impValues", function(iv) {
     temp = iv.temp;
     rh = iv.rh;
-    local current_date = date(time());
+    local current_date = date(time()+utc_offset);
     last_checkin = format("%4d-%02d-%-2d %02d:%02d:%02d", current_date.year,
                         current_date.month+1, current_date.day,
                         current_date.hour, current_date.min, current_date.sec);

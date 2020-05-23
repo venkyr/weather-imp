@@ -1,2 +1,4 @@
 auth.info
 package-lock.json
+build/
+settings/
