@@ -1,60 +1,51 @@
-//////////////////////
-// Global Variables //
-//////////////////////
+// Device code:
+// Deep sleep for INTERVAL seconds, read the sensor and report 
+// the temp and humidity values to the agent.
+//
+// (C) 2020, Venky Raju
+// This file is licensed under the MIT License
+// http://opensource.org/licenses/MIT
+
 temp <- 0;
-rh <- 0;
+humidity <- 0;
+presssure <- 0;
+battery <- 0;
+charging <- false;
+charging_complete <- false;
 last_checkin <- "Never";
 utc_offset <- (-7*3600);   // in seconds
 
-//////////////////////////
-// Function Definitions //
-//////////////////////////
-
-// respondImpValues is called whenever an http request is received.
-// This function will construct a JSON table containing our most recently
-// received imp pin values, then send that out to the requester.
-function respondImpValues(request,response){
+// Callback, provides JSON output to caller
+function respondImpData(request,response){
 
     // First, construct a JSON table with our received pin values.
     local weather = {
-        "temp": temp+"F",
-        "humidity": rh+"%",
-        "last_checkin": last_checkin+""
+        "temp": temp,
+        "humidity": humidity,
+        "pressure": presssure,
+        "battery": battery,
+        "charging": charging,
+        "fully charged": charging_complete,
+        "last_checkin": last_checkin
     }
 
-    // the http.jsonencode(object) function takes a squirrel variable and returns a
-    // standardized JSON string. - https://electricimp.com/docs/api/http/jsonencode/
     local jvars = http.jsonencode(weather);
-
-    // Attach a header to our response.
-    // "Access-Control-Allow-Origin: *" allows cross-origin resource sharing
-    // https://electricimp.com/docs/api/httpresponse/header/
-    response.header("Access-Control-Allow-Origin", "*");
-
-    // Send out our response. 
-    // 200 is the "OK" http status code
-    // jvars is our response string. The JSON table we constructed earlier.
-    // https://electricimp.com/docs/api/httpresponse/send/
     response.send(200,jvars);
 }
 
-// device.on("impValues") will be called whenever an "impValues" request is sent
-// from the device side. This simple function simply fills up our global variables
-// with the equivalent vars received from the imp.
-device.on("impValues", function(iv) {
-    temp = iv.temp;
-    rh = iv.rh;
+// handle data from Imp
+device.on("weatherImpData", function(data) {
+    temp = format("%0.1f F", data.T);
+    humidity = format("%0.0f %%", data.H);
+    presssure = format("%0.0f Pa", data.P);
+    battery = format("%0.2f V", data.V);
+    charging = (data.C == 0) ? true: false;
+    charging_complete = (data.D == 0) ? true: false;
     local current_date = date(time()+utc_offset);
     last_checkin = format("%4d-%02d-%-2d %02d:%02d:%02d", current_date.year,
                         current_date.month+1, current_date.day,
                         current_date.hour, current_date.min, current_date.sec);
     });
 
-///////////
-// Setup //
-///////////
-
-// http.onrequest(function) sets up a function handler to call when an http
-// request is received. Whenever we receive an http request call respondImpValues
-// https://electricimp.com/docs/api/http/onrequest/
-http.onrequest(respondImpValues);
+// Register callback
+http.onrequest(respondImpData);
